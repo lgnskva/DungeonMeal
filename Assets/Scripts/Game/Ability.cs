@@ -1,6 +1,8 @@
+using System;
 using UnityEngine;
 
 public abstract class Ability : MonoBehaviour
 {
-    public abstract void DoAbility(int lvlAbility, Player player);
+    public static Action OnEndAbility;
+    public abstract void DoAbility();
 }

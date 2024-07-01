@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -9,57 +10,62 @@ public class CharacterChoose : MonoBehaviour
     private Save _save;
 
     private List<GameObject> _charactersItems = new();
-    [SerializeField] private GameObject _choosePanel;
-    [SerializeField] private GameObject _gridPanel;
+    /*[SerializeField] private GameObject _choosePanel;
+    [SerializeField] private GameObject _gridPanel;*/
     [SerializeField] private GameObject _characterPrefab;
     [SerializeField] private Transform _characterParent;
+    
+    public static event Action OnOpenCharacter; 
 
-    private int _currentIndex = 0;
+    private int _currentIndex;
 
-    IInstantiator _instantiator;
+    private IInstantiator _instantiator;
 
     [Inject]
-    void Construct(Save save, IInstantiator instantiator)
+    private void Construct(IInstantiator instantiator)
     {
-        _save = save;
-
         _instantiator = instantiator;
     }
-    void Start()
+    private void Start()
     {
         CreateCharacters();
     }
-    private void Update()
+
+    private void OnEnable()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            BackButton();
-        }
+        SpinUI.ChoosePanelHidden += HideCurrentCharacter;
     }
+
+    private void OnDisable()
+    {
+        SpinUI.ChoosePanelHidden -= HideCurrentCharacter;
+    }
+
     private void CreateCharacters()
     {
-        CharacterInfo[] characters = _save.Characters;
-        foreach (CharacterInfo character in characters)
+        var characters = Resources.Load<PlayerConfig>("Configs/PlayerConfig").Characters;
+        foreach (var character in characters)
         {
-            GameObject _character = _instantiator.InstantiatePrefab(_characterPrefab, _characterParent);
-            _charactersItems.Add(_character);
-            _character.gameObject.SetActive(false);
+            var characterObject = _instantiator.InstantiatePrefab(_characterPrefab, _characterParent);
+            _charactersItems.Add(characterObject);
+            characterObject.gameObject.SetActive(false);
 
-            CharacterChooseItem _characterItem = _character.GetComponent<CharacterChooseItem>();
-            _characterItem.Create(character.Id, character.Name, character.Description, character.Sprite);
+            var characterItem = characterObject.GetComponent<CharacterChooseItem>();
+            characterItem.Create(character);
         }
     }
+    
     public void OpenCharacter(string id)
     {
-        _charactersItems.Where(character => character.GetComponent<CharacterChooseItem>().Id == id).First().SetActive(true);
-
-        _gridPanel.SetActive(false);
-        _choosePanel.SetActive(true);
+        var characterItem = _charactersItems.First(character => character.GetComponent<CharacterChooseItem>().Id == id);
+        _currentIndex = _charactersItems.IndexOf(characterItem);
+        
+        characterItem.SetActive(true);
+        OnOpenCharacter.Invoke();
+        /*_gridPanel.SetActive(false);
+        _choosePanel.SetActive(true);*/
     }
-    public void UpdateCharacterLvl(string id)
-    {
-        _charactersItems.Select(character => character.GetComponent<CharacterChooseItem>()).Where(characterItem => characterItem.Id == id).First().UpdateLvl();
-    }
+    
     public void LeftButton()
     {
         _charactersItems[_currentIndex].SetActive(false);
@@ -68,6 +74,7 @@ public class CharacterChoose : MonoBehaviour
             _currentIndex = _charactersItems.Count - 1;
         _charactersItems[_currentIndex].SetActive(true);
     }
+    
     public void RightButton()
     {
         _charactersItems[_currentIndex].SetActive(false);
@@ -76,15 +83,8 @@ public class CharacterChoose : MonoBehaviour
             _currentIndex = 0;
         _charactersItems[_currentIndex].SetActive(true);
     }
-    public void BackButton()
+    private void HideCurrentCharacter()
     {
-        if (_choosePanel.activeSelf == true)
-        {
-            _charactersItems[_currentIndex].SetActive(false);
-            _choosePanel.SetActive(false);
-            _gridPanel.SetActive(true);
-        }
-        else
-            SceneManager.LoadScene("Menu");
+        _charactersItems[_currentIndex].SetActive(false);
     }
 }

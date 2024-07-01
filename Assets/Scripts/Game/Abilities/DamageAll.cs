@@ -1,36 +1,35 @@
-﻿using System.Collections;
-using System.Linq;
+﻿using System.Threading.Tasks;
+using Zenject;
 using UnityEngine;
-
 
 public class DamageAll : Ability
 {
-    private Save _save;
-    private Player _player;
-
     private int _lvlAbility;
+    private CardFactory _cardFactory;
     
-    public override void DoAbility(int lvlAbility, Player player)
+    [Inject]
+    private void Construct(CardFactory cardFactory)
     {
-        _lvlAbility = lvlAbility;
-        _player = player;
-        
-        foreach (GameObject card in GameObject.FindGameObjectsWithTag("Poison"))
+        _cardFactory = cardFactory;
+        _lvlAbility = DataController.CurrentCharacter.LvlAbility;
+    }
+    public override async void DoAbility()
+    {
+        foreach (var card in GameObject.FindGameObjectsWithTag("Spoiled"))
         {
-            Cards damagedCard = card.GetComponent<Cards>();
-            damagedCard.damage -= _lvlAbility;
+            var damagedCard = card.GetComponent<Card>();
+            damagedCard.DecreaseDamage(_lvlAbility);
 
-            if (damagedCard.damage <= 0)
+            if (damagedCard.Damage <= 0)
             {
-                damagedCard.damage = 0;
-                StartCoroutine(CreateCard(damagedCard));
+                await CreateCard(damagedCard);
             }
         }
+        OnEndAbility?.Invoke();
     }
-    private IEnumerator CreateCard(Cards damagedCard)
+    private async Task CreateCard(Card damagedCard)
     {
-        yield return StartCoroutine(damagedCard.DeathCard());
-        Spawner.CreateCard(damagedCard.x, damagedCard.y);
-        _player.isMove = false;
+        await damagedCard.GetComponent<CardAnimation>().Death().ConfigureAwait(true);
+        _cardFactory.CreateCard(damagedCard.X, damagedCard.Y);
     }
 }

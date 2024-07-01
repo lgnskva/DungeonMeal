@@ -1,11 +1,10 @@
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
 
 public class Menu : MonoBehaviour
 {
-    private Save _save;
+    private GameData _gameData;
 
     [SerializeField] private Text _health;
     [SerializeField] private Text _money;
@@ -15,19 +14,17 @@ public class Menu : MonoBehaviour
 
 
     [Inject]
-    void Construct(Save save)
+    private void Construct(GameData gameData)
     {
-        _save = save;
+        _gameData = gameData;
     }
-    private void Awake()
-    {
-    }
-    void Start()
-    {
-        _playerSprite.sprite = _save.CurrentCharacter.Sprite;
 
-        _health.text = _save.Health.ToString();
-        _money.text = _save.Food.ToString();
-        _difficulty.text = "СЛОЖНОСТЬ: " + (_save.Health - 9).ToString();
+    private void Start()
+    {
+        _playerSprite.sprite = DataController.CurrentCharacter.Sprite;
+
+        _health.text = _gameData.MaxHealth.ToString();
+        _money.text = _gameData.Food.ToString();
+        _difficulty.text = "СЛОЖНОСТЬ: " + (_gameData.MaxHealth - 9);
     }
 }

@@ -7,35 +7,35 @@ public class Shop : MonoBehaviour
     [SerializeField] private Text _foodText;
     [SerializeField] private Text _priceHealthText;
 
-    private Save _save;
+    private GameData _gameData;
 
     private int _priceHealth;
 
     [Inject]
-    void Construct(Save save)
+    void Construct(GameData gameData)
     {
-        _save = save;
+        _gameData = gameData;
     }
     void Start()
     {
-        _priceHealth = _save.Health * 100;
+        _priceHealth = _gameData.MaxHealth * 100;
 
-        _foodText.text = _save.Food.ToString();
+        _foodText.text = _gameData.Food.ToString();
         _priceHealthText.text = _priceHealth.ToString();
     }
     public void BuyHealth()
     {
-        Buy(ref _priceHealth, ref _save.Health);
-        _priceHealth = _save.Health * 100;
+        Buy(ref _priceHealth, ref _gameData.MaxHealth);
+        _priceHealth = _gameData.MaxHealth * 100;
         _priceHealthText.text = _priceHealth.ToString();
     }
     void Buy(ref int price, ref int stat)
     {
-        if (_save.Food > price)
+        if (_gameData.Food > price)
         {
             stat++;
-            _save.Food -= price;
-            _foodText.text = _save.Food.ToString();
+            _gameData.Food -= price;
+            _foodText.text = _gameData.Food.ToString();
         }
     }
 }

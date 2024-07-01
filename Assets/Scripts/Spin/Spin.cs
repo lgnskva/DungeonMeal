@@ -1,54 +1,63 @@
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
+using Random = UnityEngine.Random;
 
 public class Spin : MonoBehaviour
 {
-    private Save _save;
-    [SerializeField] private GameObject _chooseCharacter;
-    [SerializeField] private GameObject _prizePanel;
+    private GameData _gameData;
+    /*[SerializeField] private GameObject _prizePanel;
     [SerializeField] private Image _prizeSprite;
     [SerializeField] private Text _foodText;
-    [SerializeField] private Text _lvlAbilityText;
+    [SerializeField] private Text _lvlAbilityText;*/
 
+    [field:SerializeField] public int Price { get; private set; }
+    /*[SerializeField] private Text _priceText;*/
 
-    private int price = 100;
+    private CharacterInfo[] _characters;
+
+    [SerializeField] private SpinUI _spinUI;
+    public static Action OnSpin;
 
     [Inject]
-    void Construct(Save save)
+    private void Construct(GameData gameData)
     {
-        _save = save;
+        _gameData = gameData;
     }
-    void Start()
+    private void Start()
     {
-        _foodText.text = _save.Food.ToString();
+        _characters = Resources.Load<PlayerConfig>("Configs/PlayerConfig").Characters;
+        /*_foodText.text = _gameData.Food.ToString();
+        _priceText.text = _price.ToString();*/
     }
     
     public void BuySpin()
     {
-        if (_save.Food >= price)
-        {
-            DoSpin();
-            _save.Food -= price;
-            _foodText.text = _save.Food.ToString();
-        }
+        if (_gameData.Food < Price) 
+            return;
+        
+        DoSpin();
+        _gameData.Food -= Price;
+        //_foodText.text = _gameData.Food.ToString();
     }
-    void DoSpin()
+    private void DoSpin()
     {
-        CharacterData prize = _save.CharacterData.ElementAt(Random.Range(0, _save.CharacterData.Count));
+        var prize = _gameData.CharacterData.ElementAt(Random.Range(0, _gameData.CharacterData.Count));
         prize.LvlAbility++;
         
-        _prizePanel.SetActive(true);
+        var prizeSprite = _characters.First(character => character.Id == prize.Id).Sprite;
+        _spinUI.ShowPrize(prize.LvlAbility, prizeSprite);
+        /*_prizePanel.SetActive(true);
 
-        _lvlAbilityText.text = $"Óð. {prize.LvlAbility - 1} >> {prize.LvlAbility}";
-        _prizeSprite.sprite = _save.Characters.Where(character => character.Id == prize.Id).FirstOrDefault().Sprite;
-
-        _chooseCharacter.GetComponent<CharacterChoose>().UpdateCharacterLvl(prize.Id);
+        _lvlAbilityText.text = $"Ð£Ñ€. {prize.LvlAbility - 1} >> {prize.LvlAbility}";
+        _prizeSprite.sprite = _characters.First(character => character.Id == prize.Id).Sprite;*/
+        
+        OnSpin?.Invoke();
     }
-    public void GetPrize()
+    /*public void GetPrize()
     {
         _prizePanel.SetActive(false);
-
-    }
+    }*/
 }

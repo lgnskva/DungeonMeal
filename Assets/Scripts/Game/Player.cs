@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -8,244 +5,113 @@ using Zenject;
 
 public class Player : MonoBehaviour
 {
-    public int x = 1;
-    public int y = 1;
-
-    public bool isMove = false;
-    private bool _isStop = false;
-
-    public int health;
-    public int food;
-    public int damage;
-    public int countStep;
-
+    public static int Health { get; private set; }
+    public static int Food { get; private set; }
+    public static int Damage { get; private set; }
+    
     [SerializeField] private Text _healthText;
     [SerializeField] private Text _foodText;
     [SerializeField] private Text _damageText;
-
-    private GameObject[,] _cards = Spawner.cards;
-
-    public static Action OnStep;
-
-    private Save _save;
-
+    
+    private GameData _gameData;
+    private MoveController _moveController;
 
     [Inject]
-    void Construct(Save save)
+    private void Construct(GameData gameData, MoveController moveController)
     {
-        _save = save;
+        _gameData = gameData;
+        _moveController = moveController;
+        
+        DefaultValues();
     }
 
-    void Start()
+    private void DefaultValues()
     {
-        health = _save.Health;
-        gameObject.GetComponentsInChildren<Image>()[1].sprite = _save.CurrentCharacter.Sprite;
+        Health = _gameData.MaxHealth;
+        Food = 0;
+        Damage = 0;
+        
+        _healthText.text = Health.ToString();
+        
+        gameObject.GetComponentsInChildren<Image>()[1].sprite = DataController.CurrentCharacter.Sprite;
     }
 
-    void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            _save.Food += food;
-            SceneManager.LoadScene("Menu");
+            BackToMenu();
         }
+    }
+
+    public void BackToMenu()
+    {
+        _gameData.Food += Food;
+        SceneManager.LoadScene("Menu");
     }
     private void OnApplicationQuit()
     {
-        _save.Food += food;
+        _gameData.Food += Food;
     }
-    void UpdateText()
+    public void IncreaseHealth(int health)
     {
-        _damageText.text = damage.ToString();
-        _healthText.text = health.ToString();
-        _foodText.text = food.ToString();
-    }
-    public void Swipe(int direction)
-    {
-        if (direction == 1 && x < Spawner.xSize - 1 && !isMove)
-        {
-            isMove = true;
-            Eat(_cards[x + 1, y]);
-            if (!_isStop)
-                StartCoroutine(Right());
-            else isMove = false;
-        }
-        if (direction == 2 && x > 0 && !isMove)
-        {
-            isMove = true;
-            Eat(_cards[x - 1, y]);
-            if (!_isStop)
-                StartCoroutine(Left());
-            else isMove = false;
-        }
-        if (direction == 3 && y < Spawner.ySize - 1 && !isMove)
-        {
-            isMove = true;
-            Eat(_cards[x, y + 1]);
-            if (!_isStop)
-                StartCoroutine(Up());
-            else isMove = false;
-        }
-        if (direction == 4 && y > 0 && !isMove)
-        {
-            isMove = true;
-            Eat(_cards[x, y - 1]);
-            if (!_isStop)
-                StartCoroutine(Down());
-            else isMove = false;
-        }
-        UpdateText();
-        _isStop = false;
-    }
-    IEnumerator Right()
-    {
-        Cards eatenCard = _cards[x + 1, y].GetComponent<Cards>();
-        eatenCard.damage = 0;
-        yield return StartCoroutine(eatenCard.DeathCard());
-
-        for (int i = x - 1; i >= 0; i--)
-        {
-            StartCoroutine(MoveAnimation(_cards[i, y], Spawner.xCards, 0));
-            _cards[i + 1, y] = _cards[i, y];
-            _cards[i + 1, y].GetComponent<Cards>().x = i + 1;
-        }
-
-        StartCoroutine(MoveAnimation(gameObject, Spawner.xCards, 0));
-        yield return StartCoroutine(MoveAnimation(gameObject, Spawner.xCards, 0));
-
-        Spawner.CreateCard(0, y);
-        x++;
-        _cards[x, y] = gameObject;
-    }
-    IEnumerator Left()
-    {
-        Cards eatenCard = _cards[x - 1, y].GetComponent<Cards>();
-        eatenCard.damage = 0;
-        yield return StartCoroutine(eatenCard.DeathCard());
-
-        for (int i = x + 1; i < Spawner.xSize; i++)
-        {
-            StartCoroutine(MoveAnimation(_cards[i, y], -Spawner.xCards, 0));
-            _cards[i - 1, y] = _cards[i, y];
-            _cards[i - 1, y].GetComponent<Cards>().x = i - 1;
-        }
-
-        StartCoroutine(MoveAnimation(gameObject, -Spawner.xCards, 0));
-        yield return StartCoroutine(MoveAnimation(gameObject, -Spawner.xCards, 0));
-
-        Spawner.CreateCard(Spawner.xSize - 1, y);
-        x--;
-        _cards[x, y] = gameObject;
-    }
-    IEnumerator Up()
-    {
-        Cards eatenCard = _cards[x, y + 1].GetComponent<Cards>();
-        eatenCard.damage = 0;
-        yield return StartCoroutine(eatenCard.DeathCard());
-
-        for (int i = 0; i < y; i++)
-        {
-            StartCoroutine(MoveAnimation(_cards[x, i], 0, Spawner.yCards));
-            _cards[x, i + 1] = _cards[x, i];
-            _cards[x, i + 1].GetComponent<Cards>().y = i + 1;
-        }
-
-        StartCoroutine(MoveAnimation(gameObject, 0, Spawner.yCards));
-        yield return StartCoroutine(MoveAnimation(gameObject, 0, Spawner.yCards));
-
-        Spawner.CreateCard(x, 0);
-        y++;
-        _cards[x, y] = gameObject;
-    }
-    IEnumerator Down()
-    {
-        Cards eatenCard = _cards[x, y - 1].GetComponent<Cards>();
-        eatenCard.damage = 0;
-        yield return StartCoroutine(eatenCard.DeathCard());
-
-        for (int i = y + 1; i < Spawner.ySize; i++)
-        {
-            StartCoroutine(MoveAnimation(_cards[x, i], 0, -Spawner.yCards));
-            _cards[x, i - 1] = _cards[x, i];
-            _cards[x, i - 1].GetComponent<Cards>().y = i - 1;
-        }
-
-        StartCoroutine(MoveAnimation(gameObject, 0, -Spawner.yCards));
-        yield return StartCoroutine(MoveAnimation(gameObject, 0, -Spawner.yCards));
-
-        Spawner.CreateCard(x, Spawner.ySize - 1);
-        y--;
-        _cards[x, y] = gameObject;
-    }
-
-
-    IEnumerator MoveAnimation(GameObject obj, float xObj, float yObj)
-    {
-        if (!obj.IsDestroyed())
-        {
-            float timeMove = 0.2f;
-
-            Vector3 startPos = obj.transform.position;
-            Vector3 endPos = new Vector3(obj.transform.position.x + xObj, obj.transform.position.y + yObj, 0);
-            for (float i = 0; i < timeMove; i += Time.deltaTime)
-            {
-                obj.transform.position = Vector3.Lerp(startPos, endPos, i / timeMove);
-                yield return null;
-            }
-            obj.transform.position = endPos;
-            isMove = false;
-        }
-    }
-
-    void Eat(GameObject eaten)
-    {
-        int eatenDamage = eaten.GetComponent<Cards>().damage;
-
-        if (eaten.tag == "Food")
-        {
-            food += eatenDamage;
-        }
-
-        if (eaten.tag == "Poison")
-        {
-            if (damage > 0)
-            {
-                if (damage >= eatenDamage)
-                    damage -= eatenDamage;
-                else
-                {
-                    eaten.GetComponent<Cards>().damage -= damage;
-                    damage = 0;
-                    _isStop = true;
-                }
-            }
-            else
-            {
-                health -= eatenDamage;
-                food += eatenDamage;
-            }
-        }
-
-        if (eaten.tag == "Trash" && damage < eatenDamage)
-        {
-            damage = eatenDamage;
-        }
-
-        if (eaten.tag == "Pill")
-        {
-            health += eatenDamage;
-            if (health > _save.Health)
-                health = _save.Health;
-        }
-
         if (health <= 0)
-        {
-            health = 0;
-            _save.Food += food;
-            SceneManager.LoadSceneAsync("GameOver");
-        }
+            return;
+        Health += health;
+        if (Health > _gameData.MaxHealth)
+            Health = _gameData.MaxHealth;
+        
+        _healthText.text = Health.ToString();
+    }
+    public void DecreaseHealth(int health)
+    {
+        if (health <= 0)
+            return;
+        
+        Health -= health;
+        _healthText.text = Health.ToString();
 
-        countStep++;
-        OnStep?.Invoke();
+        if (Health <= 0) 
+            GameOver();
+    }
+
+    private async void GameOver()
+    {
+        Health = 0;
+        //_gameData.Food += Food;
+            
+        MoveController.IsStop = true;
+        await GetComponent<CardAnimation>().Death();
+            
+        SceneManager.LoadSceneAsync("GameOver");
+    }
+
+    public void IncreaseDamage(int damage)
+    {
+        if (damage > 0 && damage > Damage)
+            Damage = damage;
+        
+        _damageText.text = Damage.ToString();
+    }
+
+    public void DecreaseDamage(int damage)
+    {
+        if (damage <= 0)
+            return;
+        
+        Damage -= damage;
+        
+        if (Damage < 0)
+            Damage = 0;
+        
+        _damageText.text = Damage.ToString();
+    }
+    public void AddFood(int food)
+    {
+        if (food <= 0)
+            return;
+        Food += food;
+        
+        _foodText.text = Food.ToString();
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -8,35 +9,44 @@ public class CharacterGridItem : MonoBehaviour, IPointerClickHandler
 {
     [SerializeField] private GameObject _lockMask;
     [SerializeField] private Image _sprite;
-    [SerializeField] private GameObject _grid;
 
     private string _id;
     private int _lvlAbility;
 
-    private Save _save;
     private CharacterChoose _characterChoose;
+    private GameData _gameData;
 
     [Inject]
-    void Construct(Save save, CharacterChoose characterChoose)
+    private void Construct(CharacterChoose characterChoose, GameData gameData)
     {
-        _save = save;
         _characterChoose = characterChoose;
+        _gameData = gameData;
     }
+    
     public void Create(string id, Sprite sprite)
     {
         _id = id;
         _sprite.sprite = sprite;
-
-        _lvlAbility = _save.CharacterData.Where(character => character.Id == _id).First().LvlAbility;
+        
         LockOrUnlock();
     }
-    void LockOrUnlock()
+
+    private void OnEnable()
     {
-        if (_lvlAbility == 0)
-            _lockMask.SetActive(true);
-        else
-            _lockMask.SetActive(false);
+        Spin.OnSpin += LockOrUnlock;
     }
+
+    private void OnDisable()
+    {
+        Spin.OnSpin -= LockOrUnlock;
+    }
+
+    private void LockOrUnlock()
+    { 
+        _lvlAbility = _gameData.CharacterData.First(character => character.Id == _id).LvlAbility;
+        _lockMask.SetActive(_lvlAbility == 0);
+    }
+    
     public void OnPointerClick(PointerEventData eventData)
     {
         _characterChoose.OpenCharacter(_id);

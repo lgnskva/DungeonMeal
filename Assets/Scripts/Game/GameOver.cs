@@ -1,4 +1,3 @@
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
@@ -9,20 +8,24 @@ public class GameOver : MonoBehaviour
     [SerializeField] private Text highScoreText;
     [SerializeField] private Image playerImage;
 
-    private Save _save;
-    private Player _player;
+    private GameData _gameData;
+    private int _highScore;
 
     [Inject]
-    void Construct(Save save, Player player)
+    private void Construct(GameData gameData)
     {
-        _save = save;
-        _player = player;
+        _gameData = gameData;
+        _highScore = _gameData.HighScore;
     }
-    void Start()
+
+    private void Start()
     {
-        _save.HighScore = _save.HighScore > _player.food ? _save.HighScore : _player.food;
-        highScoreText.text = _save.HighScore.ToString();
-        foodText.text = _player.food.ToString();
-        playerImage.sprite = _save.CurrentCharacter.Sprite; 
+        _gameData.Food += Player.Food;
+        _highScore = _highScore > Player.Food ? _highScore : Player.Food;
+        _gameData.HighScore = _highScore;
+        
+        highScoreText.text = _highScore.ToString();
+        foodText.text = Player.Food.ToString();
+        playerImage.sprite = DataController.CurrentCharacter.Sprite; 
     }
 }

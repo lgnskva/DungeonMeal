@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,49 +15,70 @@ public class CharacterChooseItem : MonoBehaviour
     public string Id { get; private set; }
     public int LvlAbility;
 
-    Save _save;
-
+    private CharacterInfo _character;
+    private GameData _gameData;
 
     [Inject]
-    void Construct(Save save)
+    private void Construct(GameData gameData)
     {
-        _save = save;
+        _gameData = gameData;
     }
-    public void Create(string id, string name, string description, Sprite sprite)
+    
+    public void Create(CharacterInfo character)
     {
-        Id = id;
-        _characterSprite.sprite = sprite;
-        _descriptionText.text = description;
-        _nameText.text = name;
+        _character = character;
+        Id = _character.Id;
+        _characterSprite.sprite = _character.Sprite;
+        _descriptionText.text = _character.GetDescription();
+        _nameText.text = _character.Name;
 
         UpdateLvl();
-        LockOrUnlock();
     }
-    void LockOrUnlock()
+
+    private void LockOrUnlock()
     {
         if (LvlAbility == 0)
         {
-            _button.GetComponentInChildren<Text>().text = "Õ≈ƒŒ—“”œÕŒ";
+            _button.GetComponentInChildren<Text>().text = "–ù–ï–î–û–°–¢–£–ü–ù–û";
             _button.GetComponent<Button>().interactable = false;
         }
-        else if (Id == _save.CurrentCharacter.Id)
+        else if (Id == _gameData.CurrentCharacterId)
         {
-            _button.GetComponentInChildren<Text>().text = "¬€¡–¿ÕŒ";
+            _button.GetComponentInChildren<Text>().text = "–í–´–ë–†–ê–ù–û";
             _button.GetComponent<Button>().interactable = false;
         }
         else
         {
-            _button.GetComponentInChildren<Text>().text = "¬€¡–¿“‹";
+            _button.GetComponentInChildren<Text>().text = "–í–´–ë–†–ê–¢–¨";
             _button.GetComponent<Button>().interactable = true;
         }
     }
-    public void UpdateLvl()
+
+    private void OnEnable()
     {
-        LvlAbility = _save.CharacterData.Where(character => character.Id == Id).First().LvlAbility;
-        _lvlText.text = "”. " + LvlAbility;
+        UpdateLvl();
+        LockOrUnlock();
+        
+        Spin.OnSpin += UpdateLvl;
+    }
+
+    private void OnDisable()
+    {
+        Spin.OnSpin -= UpdateLvl;
+    }
+
+    private void UpdateLvl()
+    {
+        _descriptionText.text = _character.GetDescription();
+        LvlAbility = _gameData.CharacterData.First(character => character.Id == Id).LvlAbility;
+        _lvlText.text = "–£—Ä. " + LvlAbility;
+        
+        LockOrUnlock();
     }
     public void ChooseButton()
     {
-        _save.CurrentCharacter = _save.Characters.Where(character => character.Id == Id).First();
+        DataController.CurrentCharacter = _character;
+        _gameData.CurrentCharacterId = Id;
+        LockOrUnlock();
     }
 }
